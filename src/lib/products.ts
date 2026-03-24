@@ -1,4 +1,24 @@
 import type { Product, Category } from '@/types';
+import type { Product as DbProduct } from '@/generated/prisma/client';
+
+// Convierte un producto de la DB (Prisma) al tipo del shop
+export function dbToShopProduct(p: DbProduct): Product {
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    originalPrice: p.originalPrice ?? undefined,
+    category: p.category,
+    imageUrl: p.imageUrl,
+    rating: p.rating,
+    reviewCount: p.reviewCount,
+    stock: p.stock,
+    featured: p.featured,
+    badge: (p.badge as Product['badge']) ?? undefined,
+  };
+}
 
 // ─── Datos mock — migrar a PostgreSQL + Prisma en producción ─────────────────
 // SQL equivalente: SELECT * FROM products WHERE ...

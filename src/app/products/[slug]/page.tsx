@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { ArrowLeft, ShoppingCart, Star, Shield, Truck, RotateCcw, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { getProductBySlug, getProductsByCategory, formatPrice, productGradients } from '@/lib/products';
+import { getProductBySlug, getProductsByCategory, formatPrice, productGradients, dbToShopProduct } from '@/lib/products';
 import { AddToCartButton } from '@/components/shop/add-to-cart-button';
 import { ProductCard } from '@/components/shop/product-card';
+import { db } from '@/lib/prisma';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -13,12 +14,13 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
+  try {
+    const p = await db.product.findUnique({ where: { slug, active: true } });
+    if (p) return { title: `${p.name} | TechMarket`, description: p.description };
+  } catch { /* fallback */ }
   const product = getProductBySlug(slug);
   if (!product) return { title: 'Producto no encontrado' };
-  return {
-    title: `${product.name} | TechMarket`,
-    description: product.description,
-  };
+  return { title: `${product.name} | TechMarket`, description: product.description };
 }
 
 const badgeColors: Record<string, string> = {
@@ -30,13 +32,26 @@ const badgeColors: Record<string, string> = {
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  let product;
+  let related: import('@/types').Product[] = [];
 
-  if (!product) notFound();
+  try {
+    const dbProduct = await db.product.findUnique({ where: { slug, active: true } });
+    if (dbProduct) {
+      product = dbToShopProduct(dbProduct);
+      const dbRelated = await db.product.findMany({
+        where: { category: dbProduct.category, active: true, id: { not: dbProduct.id } },
+        take: 4,
+      });
+      related = dbRelated.map(dbToShopProduct);
+    }
+  } catch { /* fallback to static */ }
 
-  const related = getProductsByCategory(product.category)
-    .filter((p) => p.id !== product.id)
-    .slice(0, 4);
+  if (!product) {
+    product = getProductBySlug(slug);
+    if (!product) notFound();
+    related = getProductsByCategory(product.category).filter((p) => p.id !== product!.id).slice(0, 4);
+  }
 
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
