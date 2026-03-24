@@ -1,0 +1,55 @@
+import { PrismaClient } from '../src/generated/prisma/client';
+
+const db = new PrismaClient();
+
+const products = [
+  { id: 'p1',  slug: 'auriculares-pro',       name: 'Auriculares Pro X500',          description: 'Auriculares inalámbricos con cancelación activa de ruido y 30 horas de batería. Audio de alta fidelidad y diseño ergonómico premium.', price: 79900,  originalPrice: 99900,  category: 'electronicos', imageUrl: '', rating: 4.8, reviewCount: 234, stock: 15, featured: true,  badge: 'Oferta' },
+  { id: 'p2',  slug: 'smartwatch-fit',         name: 'SmartWatch FitPro',             description: 'Reloj inteligente con monitor cardíaco, GPS integrado y resistencia al agua IP68. Compatible con iOS y Android.',                       price: 129900, originalPrice: undefined, category: 'electronicos', imageUrl: '', rating: 4.6, reviewCount: 187, stock: 8,  featured: true,  badge: 'Popular' },
+  { id: 'p3',  slug: 'parlante-bluetooth',     name: 'Parlante Bluetooth 360°',       description: 'Sonido envolvente 360° con batería de 24 horas. Resistente al agua y polvo. Perfecto para exteriores.',                                price: 49900,  originalPrice: 65900,  category: 'electronicos', imageUrl: '', rating: 4.5, reviewCount: 312, stock: 22, featured: false, badge: 'Oferta' },
+  { id: 'p4',  slug: 'tablet-pro',             name: 'Tablet UltraSlim 11"',          description: 'Pantalla AMOLED 11 pulgadas, 8GB RAM, 256GB almacenamiento. Ideal para trabajo y entretenimiento.',                                    price: 349900, originalPrice: undefined, category: 'electronicos', imageUrl: '', rating: 4.7, reviewCount: 98,  stock: 5,  featured: true,  badge: 'Nuevo' },
+  { id: 'p5',  slug: 'teclado-mecanico',       name: 'Teclado Mecánico RGB',          description: 'Switches mecánicos azules, retroiluminación RGB personalizable y diseño compacto TKL.',                                                price: 59900,  originalPrice: undefined, category: 'electronicos', imageUrl: '', rating: 4.4, reviewCount: 156, stock: 18, featured: false, badge: undefined },
+  { id: 'p6',  slug: 'mouse-gaming',           name: 'Mouse Gaming 12000 DPI',        description: 'Sensor óptico de alta precisión, 6 botones programables y diseño ergonómico para gaming profesional.',                                 price: 34900,  originalPrice: undefined, category: 'electronicos', imageUrl: '', rating: 4.3, reviewCount: 203, stock: 30, featured: false, badge: undefined },
+  { id: 'p7',  slug: 'poleron-tech',           name: 'Polerón Tech Hoodie',           description: 'Algodón orgánico 400g/m², diseño moderno con capucha ajustable. Colores: Negro, Gris, Azul.',                                          price: 29900,  originalPrice: undefined, category: 'ropa',         imageUrl: '', rating: 4.6, reviewCount: 89,  stock: 25, featured: false, badge: 'Nuevo' },
+  { id: 'p8',  slug: 'camiseta-minimalista',   name: 'Camiseta Minimalista',          description: 'Camiseta unisex de algodón pima. Corte relaxed y acabado suave. 12 colores disponibles.',                                               price: 14900,  originalPrice: 19900,  category: 'ropa',         imageUrl: '', rating: 4.4, reviewCount: 145, stock: 50, featured: false, badge: 'Oferta' },
+  { id: 'p9',  slug: 'jeans-slim',             name: 'Jeans Slim Premium',            description: 'Denim de alta calidad con elastán. Corte slim moderno y costuras reforzadas. Negro y azul índigo.',                                     price: 39900,  originalPrice: undefined, category: 'ropa',         imageUrl: '', rating: 4.2, reviewCount: 67,  stock: 15, featured: false, badge: undefined },
+  { id: 'p10', slug: 'chaqueta-cortaviento',   name: 'Chaqueta Cortavientos',         description: 'Material impermeable ligero, capucha plegable y bolsillos laterales con cierre. Ideal para senderismo.',                                price: 54900,  originalPrice: 74900,  category: 'ropa',         imageUrl: '', rating: 4.7, reviewCount: 112, stock: 10, featured: true,  badge: 'Oferta' },
+  { id: 'p11', slug: 'lampara-escritorio',     name: 'Lámpara LED Escritorio',        description: 'Luz LED ajustable en temperatura y brillo, base antideslizante y puerto USB de carga integrado.',                                      price: 24900,  originalPrice: undefined, category: 'hogar',        imageUrl: '', rating: 4.5, reviewCount: 78,  stock: 20, featured: false, badge: undefined },
+  { id: 'p12', slug: 'organizador-cables',     name: 'Organizador de Cables Premium', description: 'Kit de 50 piezas para organizar cables. Clips, velcro y fundas. Compatible con todos los tamaños.',                                   price: 9900,   originalPrice: undefined, category: 'hogar',        imageUrl: '', rating: 4.3, reviewCount: 234, stock: 100,featured: false, badge: undefined },
+  { id: 'p13', slug: 'soporte-monitor',        name: 'Soporte Monitor Doble',         description: 'Brazo articulado para 2 monitores. Carga máx. 9kg por brazo. Ajuste de altura, ángulo y rotación.',                                    price: 69900,  originalPrice: undefined, category: 'hogar',        imageUrl: '', rating: 4.8, reviewCount: 145, stock: 7,  featured: true,  badge: 'Popular' },
+  { id: 'p14', slug: 'planta-suculenta',       name: 'Kit Plantas Suculentas x5',     description: 'Set de 5 suculentas en macetas de cerámica. Ideales para escritorio y bajo mantenimiento.',                                             price: 19900,  originalPrice: undefined, category: 'hogar',        imageUrl: '', rating: 4.6, reviewCount: 89,  stock: 30, featured: false, badge: 'Nuevo' },
+  { id: 'p15', slug: 'botella-deportiva',      name: 'Botella Térmica 1L',            description: 'Acero inoxidable, mantiene frío/calor 24h. Libre de BPA, tapa de seguridad y asa ergonómica.',                                         price: 22900,  originalPrice: 29900,  category: 'deportes',     imageUrl: '', rating: 4.7, reviewCount: 312, stock: 40, featured: false, badge: 'Oferta' },
+  { id: 'p16', slug: 'mochila-urbana',         name: 'Mochila Urbana 30L',            description: 'Compartimento laptop 15", puerto USB de carga externo, material resistente al agua. Perfecta para trabajo.',                            price: 44900,  originalPrice: undefined, category: 'deportes',     imageUrl: '', rating: 4.5, reviewCount: 198, stock: 12, featured: true,  badge: 'Popular' },
+  { id: 'p17', slug: 'mancuernas-ajustables',  name: 'Mancuernas Ajustables 20kg',   description: 'Sistema dial de ajuste rápido de 2 a 20kg. Reemplaza 15 pares de mancuernas tradicionales.',                                          price: 89900,  originalPrice: undefined, category: 'deportes',     imageUrl: '', rating: 4.9, reviewCount: 67,  stock: 3,  featured: true,  badge: 'Popular' },
+  { id: 'p18', slug: 'mat-yoga',               name: 'Mat Yoga Antideslizante 6mm',   description: 'Material ECO TPE, 183cm x 61cm. Marcadores de alineación y bolsa de transporte incluida.',                                             price: 29900,  originalPrice: undefined, category: 'deportes',     imageUrl: '', rating: 4.4, reviewCount: 145, stock: 25, featured: false, badge: undefined },
+];
+
+async function main() {
+  console.log('🌱 Seeding products...');
+  for (const p of products) {
+    await db.product.upsert({
+      where: { id: p.id },
+      update: {},
+      create: {
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        originalPrice: p.originalPrice ?? null,
+        category: p.category,
+        imageUrl: p.imageUrl,
+        rating: p.rating,
+        reviewCount: p.reviewCount,
+        stock: p.stock,
+        featured: p.featured,
+        badge: p.badge ?? null,
+        active: true,
+      },
+    });
+  }
+  console.log(`✅ Seeded ${products.length} products`);
+}
+
+main()
+  .catch(console.error)
+  .finally(() => db.$disconnect());

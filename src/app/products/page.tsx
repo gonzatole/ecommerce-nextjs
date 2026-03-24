@@ -1,121 +1,40 @@
-'use client';
+import { db } from '@/lib/prisma';
+import { products as staticProducts, categories as staticCategories, dbToShopProduct } from '@/lib/products';
+import { ProductsClient } from '@/components/shop/products-client';
+import type { Category } from '@/types';
 
-import { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ProductCard } from '@/components/shop/product-card';
-import { products, categories } from '@/lib/products';
+export default async function ProductsPage() {
+  let allProducts;
+  let categories;
 
-type SortOption = 'relevance' | 'price-asc' | 'price-desc' | 'rating';
+  try {
+    const dbProducts = await db.product.findMany({
+      where: { active: true },
+      orderBy: [{ featured: 'desc' }, { name: 'asc' }],
+    });
+    allProducts = dbProducts.map(dbToShopProduct);
 
-export default function ProductsPage() {
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [sort, setSort] = useState<SortOption>('relevance');
+    // Calcular categorías desde la DB
+    const grouped = dbProducts.reduce<Record<string, number>>((acc, p) => {
+      acc[p.category] = (acc[p.category] ?? 0) + 1;
+      return acc;
+    }, {});
+    const categoryNames: Record<string, string> = {
+      electronicos: 'Electrónicos',
+      ropa: 'Ropa',
+      hogar: 'Hogar',
+      deportes: 'Deportes',
+    };
+    categories = Object.entries(grouped).map<Category>(([slug, count]) => ({
+      id: slug,
+      name: categoryNames[slug] ?? slug,
+      slug,
+      count,
+    }));
+  } catch {
+    allProducts = staticProducts;
+    categories = staticCategories;
+  }
 
-  // Filtrado y ordenamiento memoizado para performance
-  const filtered = useMemo(() => {
-    let result = [...products];
-
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q),
-      );
-    }
-
-    if (selectedCategory !== 'all') {
-      result = result.filter((p) => p.category === selectedCategory);
-    }
-
-    switch (sort) {
-      case 'price-asc':  return result.sort((a, b) => a.price - b.price);
-      case 'price-desc': return result.sort((a, b) => b.price - a.price);
-      case 'rating':     return result.sort((a, b) => b.rating - a.rating);
-      default:           return result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-    }
-  }, [search, selectedCategory, sort]);
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Todos los Productos</h1>
-        <p className="text-muted-foreground">{filtered.length} productos encontrados</p>
-      </div>
-
-      {/* Barra de filtros */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        {/* Búsqueda */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar productos..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* Ordenar */}
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortOption)}
-            className="text-sm border border-input rounded-md px-3 py-2 bg-background text-foreground h-9"
-          >
-            <option value="relevance">Relevancia</option>
-            <option value="price-asc">Precio: menor a mayor</option>
-            <option value="price-desc">Precio: mayor a menor</option>
-            <option value="rating">Mejor valorados</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Filtros de categoría */}
-      <div className="flex flex-wrap gap-2 mb-8">
-        <Button
-          variant={selectedCategory === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedCategory('all')}
-        >
-          Todo
-          <Badge className="ml-1.5 h-5 px-1.5 text-xs bg-white/20 border-0">{products.length}</Badge>
-        </Button>
-        {categories.map((cat) => (
-          <Button
-            key={cat.id}
-            variant={selectedCategory === cat.slug ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedCategory(cat.slug)}
-          >
-            {cat.name}
-            <Badge className={`ml-1.5 h-5 px-1.5 text-xs border-0 ${selectedCategory === cat.slug ? 'bg-white/20' : 'bg-muted text-muted-foreground'}`}>
-              {cat.count}
-            </Badge>
-          </Button>
-        ))}
-      </div>
-
-      {/* Grid de productos */}
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
-          <Search className="h-12 w-12 opacity-30" />
-          <p className="text-lg">No se encontraron productos</p>
-          <Button variant="outline" onClick={() => { setSearch(''); setSelectedCategory('all'); }}>
-            Limpiar filtros
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+  return <ProductsClient products={allProducts} categories={categories} />;
 }
