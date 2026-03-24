@@ -1,6 +1,6 @@
 import { db } from '@/lib/prisma';
 import Link from 'next/link';
-import { Plus, Pencil, Trash2, Star, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { deleteProductAction, toggleFeaturedAction, toggleActiveAction } from '@/actions/productos';
@@ -20,12 +20,26 @@ const badgeColors: Record<string, string> = {
 };
 
 export default async function AdminProductosPage() {
-  const products = await db.product.findMany({
-    orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
-  });
+  let products: Awaited<ReturnType<typeof db.product.findMany>> = [];
+  let dbConnected = true;
+  try {
+    products = await db.product.findMany({
+      orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+    });
+  } catch {
+    dbConnected = false;
+  }
 
   return (
     <div className="p-8">
+      {!dbConnected && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-yellow-600 dark:text-yellow-400">
+          <Database className="h-5 w-5 shrink-0" />
+          <p className="text-sm">
+            <strong>Base de datos no conectada.</strong> Configura <code className="mx-1 rounded bg-yellow-500/20 px-1">DATABASE_URL</code> en <code className="rounded bg-yellow-500/20 px-1">.env.local</code> y ejecuta <code className="mx-1 rounded bg-yellow-500/20 px-1">npm run db:push</code>.
+          </p>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

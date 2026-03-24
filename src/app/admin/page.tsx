@@ -1,16 +1,22 @@
 import { db } from '@/lib/prisma';
-import { Package, TrendingUp, AlertTriangle, Star, Plus } from 'lucide-react';
+import { Package, TrendingUp, AlertTriangle, Star, Plus, Database } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-async function getStats() {
-  const [total, featured, outOfStock, byCategory] = await Promise.all([
-    db.product.count({ where: { active: true } }),
-    db.product.count({ where: { active: true, featured: true } }),
-    db.product.count({ where: { active: true, stock: 0 } }),
-    db.product.groupBy({ by: ['category'], where: { active: true }, _count: true }),
-  ]);
-  return { total, featured, outOfStock, byCategory };
+type Stats = { total: number; featured: number; outOfStock: number; byCategory: { category: string; _count: number }[] };
+
+async function getStats(): Promise<{ stats: Stats; dbConnected: boolean }> {
+  try {
+    const [total, featured, outOfStock, byCategory] = await Promise.all([
+      db.product.count({ where: { active: true } }),
+      db.product.count({ where: { active: true, featured: true } }),
+      db.product.count({ where: { active: true, stock: 0 } }),
+      db.product.groupBy({ by: ['category'], where: { active: true }, _count: true }),
+    ]);
+    return { stats: { total, featured, outOfStock, byCategory }, dbConnected: true };
+  } catch {
+    return { stats: { total: 0, featured: 0, outOfStock: 0, byCategory: [] }, dbConnected: false };
+  }
 }
 
 const categoryLabels: Record<string, string> = {
@@ -21,7 +27,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 export default async function AdminDashboardPage() {
-  const stats = await getStats();
+  const { stats, dbConnected } = await getStats();
 
   const statCards = [
     { label: 'Productos activos', value: stats.total, icon: Package, color: 'bg-blue-500' },
@@ -32,6 +38,15 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="p-8">
+      {/* DB warning banner */}
+      {!dbConnected && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-yellow-600 dark:text-yellow-400">
+          <Database className="h-5 w-5 shrink-0" />
+          <p className="text-sm">
+            <strong>Base de datos no conectada.</strong> Configura <code className="mx-1 rounded bg-yellow-500/20 px-1">DATABASE_URL</code> en <code className="rounded bg-yellow-500/20 px-1">.env.local</code> y ejecuta <code className="mx-1 rounded bg-yellow-500/20 px-1">npm run db:push</code>.
+          </p>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
