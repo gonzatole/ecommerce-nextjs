@@ -3,7 +3,8 @@ import { ArrowRight, Truck, Shield, RotateCcw, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/shop/product-card';
-import { getFeaturedProducts, categories, productGradients } from '@/lib/products';
+import { getFeaturedProducts, categories, productGradients, dbToShopProduct } from '@/lib/products';
+import { db } from '@/lib/prisma';
 
 const benefits = [
   { icon: <Truck className="h-5 w-5" />, title: 'Envío Gratis', desc: 'En compras sobre $30.000' },
@@ -12,8 +13,14 @@ const benefits = [
   { icon: <Headphones className="h-5 w-5" />, title: 'Soporte 24/7', desc: 'Siempre disponibles' },
 ];
 
-export default function HomePage() {
-  const featured = getFeaturedProducts();
+export default async function HomePage() {
+  let featured;
+  try {
+    const dbFeatured = await db.product.findMany({ where: { featured: true, active: true }, take: 8 });
+    featured = dbFeatured.map(dbToShopProduct);
+  } catch {
+    featured = getFeaturedProducts();
+  }
 
   return (
     <div>
