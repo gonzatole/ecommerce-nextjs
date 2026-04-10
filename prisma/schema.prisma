@@ -7,6 +7,43 @@ datasource db {
   provider = "postgresql"
 }
 
+enum OrderStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum PaymentProvider {
+  stripe
+  mercadopago
+  webpay
+}
+
+model Order {
+  id            String          @id @default(cuid())
+  status        OrderStatus     @default(pending)
+  provider      PaymentProvider
+  providerRef   String?
+  customerEmail String?
+  total         Int
+  items         OrderItem[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([providerRef])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  name      String
+  price     Int
+  quantity  Int
+}
+
 model Product {
   id            String   @id @default(cuid())
   slug          String   @unique
