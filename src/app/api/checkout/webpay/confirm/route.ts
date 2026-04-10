@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { commitWebpayTransaction } from '@/lib/payments/webpay';
+import { db } from '@/lib/prisma';
 
 /**
  * Transbank redirige aquí mediante un POST con el token en el body (form data).
@@ -18,18 +19,33 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await commitWebpayTransaction(token);
+    const buyOrder = (result as { buyOrder: string }).buyOrder ?? '';
+    const responseCode = (result as { responseCode: number }).responseCode;
+    const amount = (result as { amount: number }).amount ?? 0;
 
     // responseCode === 0 → APROBADO
-    if ((result as { responseCode: number }).responseCode === 0) {
+    if (responseCode === 0) {
+      // Actualizar orden a pagada
+      await db.order.updateMany({
+        where: { providerRef: buyOrder, provider: 'webpay', status: 'pending' },
+        data: { status: 'paid' },
+      });
+
       const params = new URLSearchParams({
         provider: 'webpay',
-        buyOrder: (result as { buyOrder: string }).buyOrder ?? '',
-        amount: String((result as { amount: number }).amount ?? ''),
+        buyOrder,
+        amount: String(amount),
       });
       return NextResponse.redirect(`${appUrl}/checkout/success?${params.toString()}`);
     }
 
-    return NextResponse.redirect(`${appUrl}/checkout/cancel?provider=webpay&code=${(result as { responseCode: number }).responseCode}`);
+    // Pago rechazado — marcar orden como fallida
+    await db.order.updateMany({
+      where: { providerRef: buyOrder, provider: 'webpay' },
+      data: { status: 'failed' },
+    });
+
+    return NextResponse.redirect(`${appUrl}/checkout/cancel?provider=webpay&code=${responseCode}`);
   } catch (err) {
     console.error('[WebPay] confirm error:', err);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
