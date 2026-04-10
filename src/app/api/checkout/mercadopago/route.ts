@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createMercadoPagoPreference } from '@/lib/payments/mercadopago';
+import { db } from '@/lib/prisma';
 import type { CartItem } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -18,8 +19,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 });
     }
 
+    const total = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     const externalRef = `TM-${Date.now()}`;
+
+    // Crear orden pendiente con externalRef como referencia de proveedor
+    await db.order.create({
+      data: {
+        provider: 'mercadopago',
+        status: 'pending',
+        customerEmail: email ?? null,
+        total,
+        providerRef: externalRef,
+        items: {
+          create: items.map((i) => ({
+            productId: i.product.id,
+            name: i.product.name,
+            price: i.product.price,
+            quantity: i.quantity,
+          })),
+        },
+      },
+    });
 
     const preference = await createMercadoPagoPreference({
       items,
