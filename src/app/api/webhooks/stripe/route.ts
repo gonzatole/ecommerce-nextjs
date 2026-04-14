@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/lib/prisma';
 
-// Desactivar body parser de Next.js — Stripe necesita el raw body para verificar la firma
-export const config = { api: { bodyParser: false } };
-
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
     apiVersion: '2026-02-25.clover',
