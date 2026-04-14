@@ -1,6 +1,8 @@
 import { PrismaClient } from '../src/generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const db = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const db = new PrismaClient({ adapter });
 
 const products = [
   { id: 'p1',  slug: 'auriculares-pro',       name: 'Auriculares Pro X500',          description: 'Auriculares inalámbricos con cancelación activa de ruido y 30 horas de batería. Audio de alta fidelidad y diseño ergonómico premium.', price: 79900,  originalPrice: 99900,  category: 'electronicos', imageUrl: '', rating: 4.8, reviewCount: 234, stock: 15, featured: true,  badge: 'Oferta' },
